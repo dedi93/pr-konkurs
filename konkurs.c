@@ -18,6 +18,7 @@ int SALON_SIZE;
 int size,rank;
 MPI_Datatype MPI_MESSAGE;
 
+int modelsCount;
 int lamportClock;
 /* 2d array ackArray[size][4]
 	[0]	- DOC_ACK
@@ -57,6 +58,7 @@ void receiveLoop();
 
 bool checkDoc(int id);
 int choseDoc();
+bool checkSalon();
 
 
 int main(int argc,char **argv){	;
@@ -122,7 +124,7 @@ void init(int argc,char **argv){
 
 void *apiFunc(void *arg) {
 	srand(time(NULL)+rank);
-	int i, modelsCount, docId;
+	int i, docId;
 	while (!end) {
 		/* reset zmiennych */
 		pthread_mutex_lock(&clock_mtx);
@@ -130,9 +132,9 @@ void *apiFunc(void *arg) {
 		modelsCount = rand()%SALON_SIZE+1;
 		for (i=0; i<size; i++) {
 			ackArray[i][0] = EMPTY_TAG;
-
 			ackArray[i][1] = EMPTY_TAG;
-			ackArray[i][2] = 0;
+			ackArray[i][2] = EMPTY_TAG;
+			ackArray[i][3] = EMPTY_TAG;
 		}
 		pthread_mutex_unlock(&clock_mtx);
 		randomDelay();
@@ -141,7 +143,7 @@ void *apiFunc(void *arg) {
         pthread_mutex_lock(&clock_mtx);
         lamportClock += modelsCount;
 
-        docId = 0;
+        docId = choseDoc();
 
         ackArray[rank][0] = lamportClock;
         ackArray[rank][1] = docId;
@@ -153,14 +155,39 @@ void *apiFunc(void *arg) {
         }
         pthread_mutex_unlock(&clock_mtx);
 
-        while (!checkDoc(0)) {
+        while (!checkDoc(docId)) {
         	pthread_yield();
         }
 
-        printf("[%d] Wchodze do lekarza\n", rank);
-        sleep(30);
-        printf("[%d] Wychodze od lekarza\n", rank);
         
+        printf("[%d] Wchodze do lekarza\n", rank);
+        sleep(10);
+        printf("[%d] Wychodze od lekarza\n", rank);
+
+        pthread_mutex_lock(&clock_mtx);
+        lamportClock += 1;
+
+        /* wejscie do salonu */
+        ackArray[rank][2] = lamportClock;
+        ackArray[rank][3] = modelsCount;
+
+        printf("[%d] Wysylam REQ_SALON_TAG | clock: %d | data: %d\n", rank, lamportClock, modelsCount);
+        for (i=0; i<size; i++) {
+        	if (i != rank) {
+        		sendMsg(i, REQ_SALON_TAG, modelsCount, lamportClock);
+        	}
+        }
+        pthread_mutex_unlock(&clock_mtx);
+
+        while (!checkSalon()) {
+        	pthread_yield();
+        }
+
+        printf("[%d] Wchodze do salonu: %d\n", rank, modelsCount);
+        sleep(10);
+        printf("[%d] Wychodze z salonu\n", rank);
+
+        sleep(300);
 	}
 	return 0;
 }
@@ -198,9 +225,20 @@ void *commFunc(void *ptr) {
         		}
         		break;
         	case DOC_ACK_TAG:
-        		printf("[%d] DOC_ACK_TAG od: %d\n", rank, status.MPI_SOURCE);
+        		//printf("[%d] DOC_ACK_TAG od: %d\n", rank, status.MPI_SOURCE);
         		ackArray[status.MPI_SOURCE][0] = DOC_ACK_TAG;
         		break;
+        	case REQ_SALON_TAG:
+        		ackArray[status.MPI_SOURCE][0] = DOC_ACK_TAG;								// do salonu idzie po wyjsciu od lekarza, wiec wiadomo ze dany proces zwolnil miejsce
+        		sendMsg(status.MPI_SOURCE, SALON_ACK_TAG, modelsCount, ackArray[rank][2]);
+        		break;
+        	case SALON_ACK_TAG:
+        		printf("[%d] SALON_ACK_TAG od: %d\n", rank, status.MPI_SOURCE);
+        		ackArray[status.MPI_SOURCE][2] = msg->timestamp;
+        		ackArray[status.MPI_SOURCE][3] = msg->data;
+        		break;
+        	case READY:
+        		ackArray[status.MPI_SOURCE][3] = 0;
         	default:
         		printf("Nieznany tag! Wychodze\n");
         		end = true;
@@ -270,8 +308,9 @@ void receiveLoop() {
 
 bool checkDoc(int id) {
 	for (int i=0; i<size; i++) {
-		if (ackArray[i][0] != DOC_ACK_TAG && size != rank) return false;
+		if (ackArray[i][0] == EMPTY_TAG) return false;
 	}
+
 	return true;
 }
 
@@ -285,13 +324,32 @@ int choseDoc() {
 	}
 
 	int min = 99999;
-	int bestDoc = -1;
+	//int bestDoc = -1;
 
 	for (int i=0; i<DOCTORS_COUNT; i++) {
 		if (docs[i] < min) {
-			bestDoc = i;
+			//bestDoc = i;
 			min = docs[i];
 		}
 	}
-	return bestDoc;
+	return rand()%DOCTORS_COUNT;
+}
+
+bool checkSalon() {
+	for (int i=0; i<size; i++) {
+		if (ackArray[i][3] == -1) return false;
+	}
+
+	int seatsTaken = 0;
+	for (int i=0; i<size; i++) {
+		if (i != rank && ackArray[i][2] >= 0 && (ackArray[i][2] < ackArray[rank][2] || (ackArray[i][2] == ackArray[rank][2] && rank < i))) {
+			seatsTaken += ackArray[i][3];
+		}
+	}
+	if (SALON_SIZE-seatsTaken >= modelsCount) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
