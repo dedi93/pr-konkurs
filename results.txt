@@ -1,0 +1,96 @@
+[2] Wysylam REQ_DOC_TAG | clock: 3 | data: 1 = docId
+[3] Wysylam REQ_DOC_TAG | clock: 4 | data: 0 = docId
+[0] Wysylam REQ_DOC_TAG | clock: 1 | data: 0 = docId
+[1] Wysylam REQ_DOC_TAG | clock: 2 | data: 1 = docId
+[1] Wchodze do lekarza nr 1
+[0] Wchodze do lekarza nr 0
+[1] Wychodze od lekarza nr 1
+[1] Wysylam REQ_SALON_TAG | clock: 7 | data: 1 - liczba modelek
+[0] Wychodze od lekarza nr 0
+[0] Wysylam REQ_SALON_TAG | clock: 8 | data: 1 - liczba modelek
+[2] Wchodze do lekarza nr 1
+[3] Wchodze do lekarza nr 0
+[1] Wchodze do salonu. Zajmuje 1 miejsc.
+[2] Wychodze od lekarza nr 1
+[2] Wysylam REQ_SALON_TAG | clock: 10 | data: 1 - liczba modelek
+[3] Wychodze od lekarza nr 0
+[3] Wysylam REQ_SALON_TAG | clock: 10 | data: 1 - liczba modelek
+[1] Wychodze z salonu
+[1] Gotowy do konkursu!
+[0] Wchodze do salonu. Zajmuje 1 miejsc.
+[0] Wychodze z salonu
+[0] Gotowy do konkursu!
+[2] Wchodze do salonu. Zajmuje 1 miejsc.
+[2] Wychodze z salonu
+[2] Gotowy do konkursu!
+[3] Wchodze do salonu. Zajmuje 1 miejsc.
+[3] Wychodze z salonu
+[3] Gotowy do konkursu!
+[2] Konkurs start!
+[3] Konkurs start!
+[1] Konkurs start!
+[0] Konkurs start!
+[2] Wysylam REQ_DOC_TAG | clock: 3 | data: 1 = docId
+[3] Wysylam REQ_DOC_TAG | clock: 4 | data: 0 = docId
+[0] Wysylam REQ_DOC_TAG | clock: 5 | data: 0 = docId
+[1] Wysylam REQ_DOC_TAG | clock: 2 | data: 1 = docId
+[3] Wchodze do lekarza nr 0
+[1] Wchodze do lekarza nr 1
+[3] Wychodze od lekarza nr 0
+[3] Wysylam REQ_SALON_TAG | clock: 7 | data: 1 - liczba modelek
+[0] Wchodze do lekarza nr 0
+[1] Wychodze od lekarza nr 1
+[1] Wysylam REQ_SALON_TAG | clock: 9 | data: 1 - liczba modelek
+[2] Wchodze do lekarza nr 1
+[3] Wchodze do salonu. Zajmuje 1 miejsc.
+[0] Wychodze od lekarza nr 0
+[0] Wysylam REQ_SALON_TAG | clock: 11 | data: 1 - liczba modelek
+[2] Wychodze od lekarza nr 1
+[2] Wysylam REQ_SALON_TAG | clock: 13 | data: 1 - liczba modelek
+[3] Wychodze z salonu
+[3] Gotowy do konkursu!
+[1] Wchodze do salonu. Zajmuje 1 miejsc.
+[1] Wychodze z salonu
+[1] Gotowy do konkursu!
+[0] Wchodze do salonu. Zajmuje 1 miejsc.
+[0] Wychodze z salonu
+[0] Gotowy do konkursu!
+[2] Wchodze do salonu. Zajmuje 1 miejsc.
+[2] Wychodze z salonu
+[2] Gotowy do konkursu!
+[0] Konkurs start!
+[1] Konkurs start!
+[3] Konkurs start!
+[2] Konkurs start!
+[0] Wysylam REQ_DOC_TAG | clock: 1 | data: 1 = docId
+[3] Wysylam REQ_DOC_TAG | clock: 4 | data: 1 = docId
+[2] Wysylam REQ_DOC_TAG | clock: 3 | data: 0 = docId
+[1] Wysylam REQ_DOC_TAG | clock: 3 | data: 1 = docId
+[2] Wchodze do lekarza nr 0
+[0] Wchodze do lekarza nr 1
+[2] Wychodze od lekarza nr 0
+[2] Wysylam REQ_SALON_TAG | clock: 6 | data: 1 - liczba modelek
+[0] Wychodze od lekarza nr 1
+[0] Wysylam REQ_SALON_TAG | clock: 6 | data: 1 - liczba modelek
+[1] Wchodze do lekarza nr 1
+[0] Wchodze do salonu. Zajmuje 1 miejsc.
+[1] Wychodze od lekarza nr 1
+[1] Wysylam REQ_SALON_TAG | clock: 8 | data: 1 - liczba modelek
+[3] Wchodze do lekarza nr 1
+[0] Wychodze z salonu
+[0] Gotowy do konkursu!
+[2] Wchodze do salonu. Zajmuje 1 miejsc.
+[3] Wychodze od lekarza nr 1
+[3] Wysylam REQ_SALON_TAG | clock: 12 | data: 1 - liczba modelek
+[2] Wychodze z salonu
+[2] Gotowy do konkursu!
+[1] Wchodze do salonu. Zajmuje 1 miejsc.
+[1] Wychodze z salonu
+[1] Gotowy do konkursu!
+[3] Wchodze do salonu. Zajmuje 1 miejsc.
+[3] Wychodze z salonu
+[3] Gotowy do konkursu!
+[0] Konkurs start!
+[3] Konkurs start!
+[2] Konkurs start!
+[1] Konkurs start!
