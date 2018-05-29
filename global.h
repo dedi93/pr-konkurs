@@ -4,6 +4,7 @@
 #define REQ_DOC_TAG 2
 #define SALON_ACK_TAG 3
 #define REQ_SALON_TAG 4
+#define READY 5
 
 
 typedef struct Message {

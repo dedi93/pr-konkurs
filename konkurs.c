@@ -42,6 +42,7 @@ void create_message_type();
 
 /* Inicjalizacja - sprawdzenie */
 void init(int argc,char **argv);
+void finalize();
 
 /* argument musi być, bo wymaga tego pthreads. Wątek komunikacyjny */
 void *apiFunc(void *arg);
@@ -59,14 +60,14 @@ void receiveLoop();
 bool checkDoc(int id);
 int choseDoc();
 bool checkSalon();
+bool checkContest();
 
 
 int main(int argc,char **argv){	;
 	init(argc, argv);
 	receiveLoop();
 	pthread_join(apiThread, NULL);
-	MPI_Type_free(&MPI_MESSAGE);
-    MPI_Finalize();
+	finalize();
 	return 0;
 }
 
@@ -117,15 +118,21 @@ void init(int argc,char **argv){
 
     pthread_create(&apiThread, NULL, apiFunc, 0);
     pthread_create(&commThread, NULL, commFunc, 0);
-    if (rank==0) {
-		//pthread_create(&monitorThread, NULL, monitorFunc, 0);
-    }
+}
+
+void finalize() {
+	free(stack);
+	pthread_mutex_destroy(&stack_mtx);
+	pthread_mutex_destroy(&clock_mtx);
+	MPI_Type_free(&MPI_MESSAGE);
+	MPI_Finalize();
 }
 
 void *apiFunc(void *arg) {
 	srand(time(NULL)+rank);
 	int i, docId;
-	while (!end) {
+	int iterations = 3;
+	while (!end && iterations > 0) {
 		/* reset zmiennych */
 		pthread_mutex_lock(&clock_mtx);
 		lamportClock = rank;
@@ -147,7 +154,7 @@ void *apiFunc(void *arg) {
 
         ackArray[rank][0] = lamportClock;
         ackArray[rank][1] = docId;
-        printf("[%d] Wysylam REQ_DOC_TAG | clock: %d | data: %d\n", rank, lamportClock, docId);
+        printf("[%d] Wysylam REQ_DOC_TAG | clock: %d | data: %d = docId\n", rank, lamportClock, docId);
         for (i=0; i<size; i++) {
         	if (i != rank) {
         		sendMsg(i, REQ_DOC_TAG, docId, lamportClock);
@@ -160,9 +167,9 @@ void *apiFunc(void *arg) {
         }
 
         
-        printf("[%d] Wchodze do lekarza\n", rank);
+        printf("[%d] Wchodze do lekarza nr %d\n", rank, docId);
         sleep(10);
-        printf("[%d] Wychodze od lekarza\n", rank);
+        printf("[%d] Wychodze od lekarza nr %d\n", rank, docId);
 
         pthread_mutex_lock(&clock_mtx);
         lamportClock += 1;
@@ -171,7 +178,7 @@ void *apiFunc(void *arg) {
         ackArray[rank][2] = lamportClock;
         ackArray[rank][3] = modelsCount;
 
-        printf("[%d] Wysylam REQ_SALON_TAG | clock: %d | data: %d\n", rank, lamportClock, modelsCount);
+        printf("[%d] Wysylam REQ_SALON_TAG | clock: %d | data: %d - liczba modelek\n", rank, lamportClock, modelsCount);
         for (i=0; i<size; i++) {
         	if (i != rank) {
         		sendMsg(i, REQ_SALON_TAG, modelsCount, lamportClock);
@@ -183,11 +190,32 @@ void *apiFunc(void *arg) {
         	pthread_yield();
         }
 
-        printf("[%d] Wchodze do salonu: %d\n", rank, modelsCount);
+        printf("[%d] Wchodze do salonu. Zajmuje %d miejsc.\n", rank, modelsCount);
         sleep(10);
         printf("[%d] Wychodze z salonu\n", rank);
+        pthread_mutex_lock(&clock_mtx);
+        lamportClock += 1;
+        pthread_mutex_unlock(&clock_mtx);
 
-        sleep(300);
+        for (i=0; i<size; i++) {
+        	sendMsg(i, READY, -1, lamportClock);
+        }
+
+        printf("[%d] Gotowy do konkursu!\n", rank);
+        while (!checkContest()) {
+        	pthread_yield();
+        }
+        printf("[%d] Konkurs start!\n", rank);
+
+        //Zakoncz po 3 iteracjach
+        iterations -= 1;
+        if (iterations == 0 && rank == 0) {
+        	for (i=1; i<size; i++) {
+        			sendMsg(i, FINNISH_TAG, -1, lamportClock);
+        	}
+        }
+
+        sleep(5);
 	}
 	return 0;
 }
@@ -233,12 +261,19 @@ void *commFunc(void *ptr) {
         		sendMsg(status.MPI_SOURCE, SALON_ACK_TAG, modelsCount, ackArray[rank][2]);
         		break;
         	case SALON_ACK_TAG:
-        		printf("[%d] SALON_ACK_TAG od: %d\n", rank, status.MPI_SOURCE);
+        		//printf("[%d] SALON_ACK_TAG od: %d\n", rank, status.MPI_SOURCE);
         		ackArray[status.MPI_SOURCE][2] = msg->timestamp;
-        		ackArray[status.MPI_SOURCE][3] = msg->data;
+        		if (ackArray[status.MPI_SOURCE][3] == -1)
+        			ackArray[status.MPI_SOURCE][3] = msg->data;
         		break;
         	case READY:
         		ackArray[status.MPI_SOURCE][3] = 0;
+        		//ackArray[status.MPI_SOURCE][2] = -1;				//przestaje sie ubiegac
+        		break;
+        	case FINNISH_TAG:
+        		end = true;
+        		exit(0);
+        		break;
         	default:
         		printf("Nieznany tag! Wychodze\n");
         		end = true;
@@ -336,20 +371,33 @@ int choseDoc() {
 }
 
 bool checkSalon() {
+
+	//dopoki nie mam info o liczbie modelek kazdego procesu to false
 	for (int i=0; i<size; i++) {
 		if (ackArray[i][3] == -1) return false;
 	}
 
 	int seatsTaken = 0;
 	for (int i=0; i<size; i++) {
-		if (i != rank && ackArray[i][2] >= 0 && (ackArray[i][2] < ackArray[rank][2] || (ackArray[i][2] == ackArray[rank][2] && rank < i))) {
-			seatsTaken += ackArray[i][3];
+		if (i != rank) {
+			if (ackArray[i][2] >= 0 && (ackArray[i][2] < ackArray[rank][2] || (ackArray[i][2] == ackArray[rank][2] && i < rank))) {
+				seatsTaken += ackArray[i][3];
+			}
 		}
 	}
+
+	//printf("[%d] seats: %d\n", rank, seatsTaken);
 	if (SALON_SIZE-seatsTaken >= modelsCount) {
 		return true;
 	}
 	else {
 		return false;
 	}
+}
+
+bool checkContest() {
+	for (int i=0; i<size; i++) {
+		if (ackArray[i][3] != 0) return false;
+	}
+	return true;
 }
